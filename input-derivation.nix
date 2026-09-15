@@ -2,14 +2,19 @@
   stdenv,
   src,
   php,
+  pmp_patch,
 }:
 stdenv.mkDerivation {
   name = "pmp";
   inherit src;
 
+  patches = [ pmp_patch ];
+
   buildInputs = [ php ];
   postPatch = ''
     patchShebangs .
+    substituteInPlace ./main.php \
+      --replace-fail '// TODO' 'if ($print_target) { echo $targetFile; exit(0); }'
   '';
 
   installPhase = ''

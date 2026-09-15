@@ -1,0 +1,21 @@
+diff --git a/package-src/main.php b/package-src/main.php
+index 5af53f8..267016e 100644
+--- a/main.php
++++ b/main.php
+@@ -19,7 +19,15 @@
+     }
+ }
+ 
+-$configFile = $argv[0] . "/config/config.xml";
++$options = getopt("c:p", ["config:", "print-target"]);
++
++$configFile = $options['c'] ?? $options['config'] ?? null;
++$print_target = isset($options['p']) || isset($options['print-target']);
++
++if ($configFile == null) {
++    fwrite(STDERR, "Usage: php script.php -c <config.xml>\n");
++    exit(1);
++}
+ 
+ if (!file_exists($configFile) || !is_readable($configFile)) {
+     fwrite(STDERR, "Error: Configuration file '{$configFile}' not found or not readable.\n");

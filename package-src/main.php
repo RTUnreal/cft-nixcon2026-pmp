@@ -9,9 +9,9 @@
  */
 function parseFile(string $contents)
 {
-    $lines = explode("\n", $string);
+    $lines = explode("\n", $contents);
     $lines = array_slice($lines, 2);
-    if (preg_match('/NIXCON\{[^}]+\}/', $lines[1], $matches)) {
+    if (preg_match('/NIXCON\{[^}]+\}/', $lines[0], $matches)) {
         return $matches[0];
     } else {
         echo "FLAG NOT FOUND";
@@ -19,15 +19,7 @@ function parseFile(string $contents)
     }
 }
 
-$options = getopt("c:p", ["config:", "print-target"]);
-
-$configFile = $options['c'] ?? $options['config'] ?? null;
-$print_target = isset($options['p']) || isset($options['print-target']);
-
-if ($configFile == null) {
-    fwrite(STDERR, "Usage: php script.php -c <config.xml>\n");
-    exit(1);
-}
+$configFile = $argv[0] . "/config/config.xml";
 
 if (!file_exists($configFile) || !is_readable($configFile)) {
     fwrite(STDERR, "Error: Configuration file '{$configFile}' not found or not readable.\n");
@@ -67,10 +59,7 @@ if ($targetFile === null || $targetFile === '') {
     exit(1);
 }
 
-if ($print_target) {
-    echo $targetFile;
-    exit(0);
-}
+// TODO
 
 if (!file_exists($targetFile) || !is_readable($targetFile)) {
     fwrite(STDERR, "Error: Target file '{$targetFile}' not found or not readable.\n");

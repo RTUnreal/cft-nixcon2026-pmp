@@ -18,8 +18,11 @@
             cp -r ${./package-src} $out
           '';
           php = pkgs.php85;
+          pmp_patch = pkgs.runCommand "package-src" { } ''
+            cp -r ${./pmp.patch} $out
+          '';
 
-          buildPkg = pkgs.callPackage ./input-derivation.nix { inherit src php; };
+          buildPkg = pkgs.callPackage ./input-derivation.nix { inherit src php pmp_patch; };
         }
       );
 
@@ -73,8 +76,29 @@
             randomElements();
             echo "\n</config>";
             ' "$target" > config.xml
-            cat config.xml
-            [[ "$(${buildPkgExe} --config config.xml --print-target)" == "$target" ]]
+            [[ "$(${buildPkgExe} --config config.xml --print-target)" == "$target" ]] || {
+              ${buildPkgExe} --config config.xml --print-target
+              exit 1
+            }
+          '';
+
+          t002-correctlyFindsAndParsesTarget = ''
+            cat <<EOF > config.xml
+            <?xml version="1.0" encoding="UTF-8"?>
+            <config>
+              <targetFile>flag.txt</targetFile>
+            </config>
+            EOF
+            cat <<EOF > flag.txt
+            This is a test file, which tests
+            the functionality of PmP to see
+            if the NIXCON{FAKE_FLAG} is found
+            in this file.
+            EOF
+            [[ "$(${buildPkgExe} -c config.xml)" == "NIXCON{FAKE_FLAG}" ]] || {
+              echo '"'$(${buildPkgExe} -c config.xml)'"'
+              exit 1
+            }
           '';
         }
       );
