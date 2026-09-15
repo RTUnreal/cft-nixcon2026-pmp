@@ -1,0 +1,82 @@
+{
+  description = "Pimp my PHP";
+
+  inputs = {
+    nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst";
+  };
+
+  outputs =
+    inputs:
+    let
+      forEach = f: builtins.mapAttrs f inputs.nixpkgs.legacyPackages;
+    in
+    {
+      # the package you build and the source provided
+      packages = forEach (
+        system: pkgs: rec {
+          src = pkgs.runCommand "package-src" { } ''
+            cp -r ${./package-src} $out
+          '';
+          php = pkgs.php85;
+
+          buildPkg = pkgs.callPackage ./input-derivation.nix { inherit src php; };
+        }
+      );
+
+      # before the flag is calculated the following checks must pass
+      checks = forEach (
+        system: pkgs:
+        let
+          selfpkgs = inputs.self.packages.${system};
+          lib = pkgs.lib;
+
+          phpExe = lib.getExe selfpkgs.php;
+          buildPkgExe = lib.getExe selfpkgs.buildPkg;
+
+          runSimpleTest = name: script: pkgs.runCommand name { } (script + "\ntouch $out");
+        in
+        builtins.mapAttrs runSimpleTest {
+          t000-fileIsPHPScript = ''
+            ${phpExe} -l "${buildPkgExe}"
+          '';
+
+          t001-correctlyParsesConfig = ''
+            target=$(mktemp)
+            ${phpExe} -r '
+            $targetFile = $argv[1];
+
+            $a = [
+              "<lmao>wrong key</lmao>",
+              "<targFile>/etc/your/files/have/beem/hacked</targFile>",
+              "<meow>I have no .idea</meow>",
+              "<nixos>github:nixos/nixpkgs</nixos>",
+              "<german humor=\"\">Hier könnte Ihre Werbung stehen!</german>",
+            ];
+            function randomElements() {
+              global $a;
+              $count = random_int(3, min(5, count($a)));
+              $keys = array_rand($a, $count);
+
+              if (!is_array($keys)) {
+                $keys = [$keys];
+              }
+
+              echo implode("\n\t", array_map(
+                static fn($key) => $a[$key],
+                $keys
+              ));
+            }
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+            echo "<config>\n\t";
+            randomElements();
+            echo "\n\t<targetFile>".$argv[1]."</targetFile>\n\t";
+            randomElements();
+            echo "\n</config>";
+            ' "$target" > config.xml
+            cat config.xml
+            [[ "$(${buildPkgExe} --config config.xml --print-target)" == "$target" ]]
+          '';
+        }
+      );
+    };
+}
