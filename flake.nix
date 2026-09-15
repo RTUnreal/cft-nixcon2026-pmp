@@ -23,7 +23,7 @@
         }
       );
 
-      # before the flag is calculated the following checks must pass
+      # before the flag is is outputed via `nix run .#output-flag`, the following checks must pass
       checks = forEach (
         system: pkgs:
         let
@@ -76,6 +76,16 @@
             cat config.xml
             [[ "$(${buildPkgExe} --config config.xml --print-target)" == "$target" ]]
           '';
+        }
+      );
+
+      apps = forEach (
+        system: pkgs: {
+          output-flag = {
+            type = "app";
+            program = pkgs.lib.getExe inputs.self.packages.${system}.buildPkg;
+            meta.description = "runs the flag outputter";
+          };
         }
       );
     };
