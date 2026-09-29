@@ -26,7 +26,7 @@
         }
       );
 
-      # before the flag is is outputed via `nix run .#output-flag`, the following checks must pass
+      # the following checks must pass before the flag is output via `nix run .#output-flag`
       checks = forEach (
         system: pkgs:
         let
